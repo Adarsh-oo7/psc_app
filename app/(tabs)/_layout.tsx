@@ -1,59 +1,96 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Tabs, useRouter, useNavigation } from 'expo-router';
+import { TouchableOpacity, BackHandler, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { CustomTabBar } from '@/components/CustomTabBar';
+import { useFocusEffect, useNavigationState, DrawerActions } from '@react-navigation/native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const navigationState = useNavigationState(state => state);
+
+  // This hook handles the Android back button correctly
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        const currentRoute = navigationState?.routes[navigationState.index];
+        
+        // This logic correctly handles exiting the app from the home screen.
+        if (currentRoute?.name === '(tabs)') {
+            const currentTabName = currentRoute.state?.routes[currentRoute.state.index]?.name;
+            if (currentTabName !== 'index') {
+                router.push('/(tabs)/');
+                return true;
+            }
+        } else if (router.canGoBack()) {
+            router.back();
+            return true;
+        }
+
+        Alert.alert(
+          "Exit App",
+          "Are you sure you want to exit PSC WINNER?",
+          [
+            { text: "Cancel", style: "cancel", onPress: () => null },
+            { text: "Exit", style: "destructive", onPress: () => BackHandler.exitApp() }
+          ]
+        );
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigationState, router])
+  );
 
   return (
     <Tabs
+      tabBar={props => <CustomTabBar {...props} />}
+      initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
+        headerShown: true,
+        headerStyle: { backgroundColor: '#4A3780' },
+        headerTitle: "PSC WINNER",
+        headerTitleStyle: { color: '#fff', fontWeight: 'bold' },
+        headerTitleAlign: 'center',
+        headerLeft: () => (
+          <TouchableOpacity 
+            onPress={() => router.push('/(tabs)/notifications')} 
+            style={{ marginLeft: 16, padding: 8 }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={28} color="#fff" />
+          </TouchableOpacity>
+        ),
+        // --- The headerRight now shows the original progress icon ---
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={() => router.push('/(tabs)/progress')} 
+            style={{ marginRight: 16, padding: 8 }}
+          >
+            <Ionicons name="stats-chart" size={24} color="#fff" />
+          </TouchableOpacity>
+        ),
+      }}
+    >
+      {/* The three tabs for your design */}
+      <Tabs.Screen name="community" options={{ title: 'Community' }} />
+      <Tabs.Screen 
         name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
+        options={{ headerShown: false }}
       />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      
+      {/* The notifications tab is part of the layout but hidden from the bottom bar */}
+      <Tabs.Screen name="notifications" options={{ title: 'Notifications', href: null }} />
+
+      {/* Hide all other screens from the tab bar */}
+      <Tabs.Screen name="practice" options={{ href: null }} />
+      <Tabs.Screen name="study" options={{ href: null }} />
+      <Tabs.Screen name="progress" options={{ title: 'My Progress', href: null }} />
+      <Tabs.Screen name="exams" options={{ href: null }} />
+      <Tabs.Screen name="topics" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }

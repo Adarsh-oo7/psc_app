@@ -1,59 +1,61 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { AppProvider, useAppContext } from '@/context/AppContext';
+import { Stack, useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, View } from 'react-native';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+// This is the main navigator for the app
+function RootLayoutNav() {
+  const { isLoading, user } = useAppContext();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
+    if (!isLoading) {
       SplashScreen.hideAsync();
+      if (user) {
+        // If user is logged in, go to the main app screen group
+        router.replace('/(tabs)');
+      } else {
+        // If no user, go to the login screen
+        router.replace('/login');
+      }
     }
-  }, [loaded]);
+  }, [isLoading, user]);
 
-  if (!loaded) {
-    return null;
+  // Show a loading screen while checking the session
+  if (isLoading) {
+    return <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" /></View>;
   }
 
-  return <RootLayoutNav />;
+  // This Stack navigator manages the switch between auth and the main app
+  return (
+      <Stack>
+        {/* This screen points to the group of pages that will have the sidebar */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        
+        {/* These are your modal/full-screen auth pages */}
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+                <Stack.Screen name="practice-session" options={{ headerShown: false }} />
+
+      </Stack>
+  );
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const [loaded, error] = useFonts({ ...Ionicons.font });
+
+  useEffect(() => { if (error) throw error; }, [error]);
+
+  if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <AppProvider>
+      <RootLayoutNav />
+    </AppProvider>
   );
 }
