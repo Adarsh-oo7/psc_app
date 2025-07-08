@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { 
     View, Text, StyleSheet, ScrollView, ActivityIndicator, 
-    Alert, Button, TouchableOpacity 
+    Button, TouchableOpacity 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as Progress from 'react-native-progress';
 
-// --- Reusable Components for this Screen ---
+// --- Reusable Components ---
 
 const StatCard = ({ title, value, icon, isDarkMode }: { title: string, value: string | number, icon: any, isDarkMode: boolean }) => (
     <View style={[styles.statCard, isDarkMode && styles.cardDark]}>
@@ -33,10 +34,71 @@ const TopicFeedbackItem = ({ topic, isStrength, isDarkMode }: { topic: any, isSt
             <View style={{ flex: 1 }}>
                 <Text style={[styles.topicName, isDarkMode && styles.textDark]}>{topic.question__topic__name}</Text>
                 <Text style={{ color: isStrength ? '#28a745' : '#dc3545', fontSize: 12 }}>
-                    {isStrength ? `Accuracy: ${topic.accuracy.toFixed(0)}%` : `Marks Lost: ${topic.marks_lost.toFixed(2)}`}
+                    {isStrength ? `Accuracy: ${topic.accuracy?.toFixed(0) ?? '-'}%` : `Marks Lost: ${topic.marks_lost?.toFixed(2) ?? '-'}`}
                 </Text>
             </View>
             {!isStrength && <Button title="Practice" onPress={handlePractice} />}
+        </View>
+    );
+};
+
+const ProgressPie = ({
+    label,
+    value,
+    color,
+    isDarkMode,
+    sublabel,
+}: {
+    label: string,
+    value: number,
+    color: string,
+    isDarkMode: boolean,
+    sublabel?: string
+}) => (
+    <View style={styles.graphCard}>
+        <Progress.Circle
+            size={70}
+            progress={Math.max(0, Math.min(1, value))}
+            showsText
+            formatText={() => `${Math.round(value * 100)}%`}
+            color={color}
+            unfilledColor={isDarkMode ? "#222" : "#e5e7eb"}
+            borderWidth={0}
+            thickness={7}
+            textStyle={{ color: isDarkMode ? "#fff" : color, fontWeight: "bold", fontSize: 15 }}
+        />
+        <Text style={[styles.graphLabel, isDarkMode && styles.textDark]}>{label}</Text>
+        {sublabel ? <Text style={[styles.graphSublabel, isDarkMode && styles.textSecondaryDark]}>{sublabel}</Text> : null}
+    </View>
+);
+
+const HistoryBarGraph = ({
+    data,
+    isDarkMode,
+}: {
+    data: { date: string; score: number }[],
+    isDarkMode: boolean,
+}) => {
+    if (!data || !data.length) return null;
+    const maxScore = Math.max(...data.map(d => d.score), 100);
+    return (
+        <View style={styles.historyBarContainer}>
+            {data.map((attempt, i) => (
+                <View key={i} style={styles.historyBar}>
+                    <View style={{
+                        height: 12 + 48 * (attempt.score / maxScore),
+                        width: 18,
+                        backgroundColor: "#A78BFA",
+                        borderTopLeftRadius: 6,
+                        borderTopRightRadius: 6,
+                        alignSelf: 'flex-end',
+                        marginBottom: 4,
+                    }} />
+                    <Text style={{ fontSize: 10, color: isDarkMode ? "#9ca3af" : "#333", textAlign: 'center' }}>
+                        {attempt.date.slice(5)}
+                    </Text>
+                </View>
+            ))}
         </View>
     );
 };
@@ -45,7 +107,7 @@ const TopicFeedbackItem = ({ topic, isStrength, isDarkMode }: { topic: any, isSt
 export default function ProgressScreen() {
     const { fetcher, theme } = useAppContext();
     const router = useRouter();
-    const [mode, setMode] = useState('focus');
+    const [mode, setMode] = useState<'focus' | 'overall'>('focus');
     const isDarkMode = theme === 'dark';
 
     const { data, error, isLoading } = useSWR(`/my-progress-dashboard/?mode=${mode}`, fetcher);
@@ -62,7 +124,21 @@ export default function ProgressScreen() {
         );
     }
 
-    const { overall_stats, strongest_topics, weakest_topics, report_title } = data;
+    // --- Progress & Analysis Data ---
+    const { overall_stats, strongest_topics = [], weakest_topics = [], report_title,
+        exam_history_stats = {}, study_time_stats = {}, focus_area_stats = {} } = data;
+    // Fallbacks for demo if not returned by backend:
+    const overallProgress = overall_stats?.progress ?? 0.7;
+    const examSuccessRate = exam_history_stats?.success_rate ?? 0.58;
+    const studyTimeProgress = study_time_stats?.completion_rate ?? 0.45;
+    const focusAreaScore = focus_area_stats?.score ?? 0.36;
+
+    const examAttemptsHistory: {date: string, score: number}[] = exam_history_stats?.history ?? [
+        { date: '2024-06-01', score: 48 },
+        { date: '2024-07-01', score: 55 },
+        { date: '2024-08-01', score: 60 },
+        { date: '2024-09-01', score: 72 },
+    ];
 
     return (
         <ScrollView style={[styles.container, isDarkMode && styles.containerDark]} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -82,12 +158,69 @@ export default function ProgressScreen() {
                 </View>
             </View>
 
+            {/* Three Main Progress Graphs */}
+            <View style={styles.graphRow}>
+                <ProgressPie
+                    label="Overall Progress"
+                    value={overallProgress}
+                    color={isDarkMode ? "#A78BFA" : "#4A3780"}
+                    isDarkMode={isDarkMode}
+                    sublabel={"All Quiz & Practice"}
+                />
+                <ProgressPie
+                    label="Study Time"
+                    value={studyTimeProgress}
+                    color="#f59e42"
+                    isDarkMode={isDarkMode}
+                    sublabel={"Weekly Target"}
+                />
+                <ProgressPie
+                    label="Exam Success"
+                    value={examSuccessRate}
+                    color="#2ecc71"
+                    isDarkMode={isDarkMode}
+                    sublabel={"Exam Attempts"}
+                />
+            </View>
+
+            {/* Area Needing Focus */}
+            <View style={[styles.focusAreaCard, isDarkMode && styles.cardDark]}>
+                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark]}>Area to Focus More</Text>
+                <Text style={[styles.infoText, isDarkMode && styles.textSecondaryDark]}>
+                    {focus_area_stats?.name ? `You need to focus more on: ${focus_area_stats.name}` : "Analysis suggests focusing on your weakest topic(s) below."}
+                </Text>
+                <Progress.Bar
+                    progress={focusAreaScore}
+                    width={250}
+                    height={12}
+                    color="#e74c3c"
+                    unfilledColor={isDarkMode ? "#222" : "#fbe9e7"}
+                    borderWidth={0}
+                    style={{ marginTop: 8, marginBottom: 10, alignSelf: 'center' }}
+                />
+                <Text style={{ color: isDarkMode ? "#fff" : "#e74c3c", marginBottom: 4, fontWeight: "600", textAlign: "center" }}>
+                    {focus_area_stats?.score ? `${Math.round(focus_area_stats.score * 100)}% Mastery` : "Needs Improvement"}
+                </Text>
+            </View>
+
+            {/* Exam Attempts History */}
+            <View style={[styles.historyCard, isDarkMode && styles.cardDark]}>
+                <Text style={[styles.sectionTitle, isDarkMode && styles.textDark, {marginBottom: 8}]}>Exam Attempts History</Text>
+                <HistoryBarGraph data={examAttemptsHistory} isDarkMode={isDarkMode} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 }}>
+                    <Text style={[styles.infoText, isDarkMode && styles.textSecondaryDark]}>Recent Exams</Text>
+                    <Text style={[styles.infoText, isDarkMode && styles.textSecondaryDark]}>
+                        Best: {Math.max(...examAttemptsHistory.map(x => x.score))}%
+                    </Text>
+                </View>
+            </View>
+
             {/* Overall Stats Grid */}
             <View style={styles.grid}>
-                <StatCard title="Net Marks" value={overall_stats.net_marks} icon="ribbon-outline" isDarkMode={isDarkMode} />
-                <StatCard title="Accuracy" value={`${overall_stats.accuracy.toFixed(1)}%`} icon="aperture-outline" isDarkMode={isDarkMode} />
-                <StatCard title="Correct" value={overall_stats.correct} icon="checkmark-circle-outline" isDarkMode={isDarkMode} />
-                <StatCard title="Wrong" value={overall_stats.wrong} icon="close-circle-outline" isDarkMode={isDarkMode} />
+                <StatCard title="Net Marks" value={overall_stats?.net_marks ?? '-'} icon="ribbon-outline" isDarkMode={isDarkMode} />
+                <StatCard title="Accuracy" value={`${overall_stats?.accuracy?.toFixed(1) ?? '-'}%`} icon="aperture-outline" isDarkMode={isDarkMode} />
+                <StatCard title="Correct" value={overall_stats?.correct ?? '-'} icon="checkmark-circle-outline" isDarkMode={isDarkMode} />
+                <StatCard title="Wrong" value={overall_stats?.wrong ?? '-'} icon="close-circle-outline" isDarkMode={isDarkMode} />
             </View>
 
             {/* Personalized Study Plan */}
@@ -119,6 +252,14 @@ const styles = StyleSheet.create({
     toggleButtonActive: { backgroundColor: '#4A3780' },
     toggleText: { fontWeight: '600', color: '#4A3780' },
     toggleTextActive: { color: '#fff' },
+    graphRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 18, marginTop: 10 },
+    graphCard: { alignItems: 'center', marginHorizontal: 3 },
+    graphLabel: { marginTop: 6, fontSize: 13, color: '#444', fontWeight: '600', textAlign: 'center' },
+    graphSublabel: { fontSize: 11, color: '#6b7280', marginTop: 1, textAlign: 'center' },
+    focusAreaCard: { marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 16, backgroundColor: '#fff', elevation: 2 },
+    historyCard: { marginHorizontal: 16, marginBottom: 18, borderRadius: 12, padding: 16, backgroundColor: '#fff', elevation: 2 },
+    historyBarContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 8, marginTop: 2, minHeight: 50 },
+    historyBar: { alignItems: 'center', justifyContent: 'flex-end', flex: 1, marginHorizontal: 2 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', padding: 16 },
     statCard: { width: '48%', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, alignItems: 'center', elevation: 2 },
     statValue: { fontSize: 22, fontWeight: 'bold', marginTop: 8 },

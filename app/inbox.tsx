@@ -15,8 +15,8 @@ const InboxItem = ({ icon, title, body, time, isUnread, isDarkMode }: any) => (
         </View>
         <View style={styles.itemContent}>
             <Text style={[styles.itemTitle, isDarkMode && styles.textDark]}>{title}</Text>
-            <Text style={[styles.itemBody, isDarkMode && styles.textSecondaryDark]} numberOfLines={2}>{body}</Text>
-            <Text style={[styles.itemTime, isDarkMode && styles.textSecondaryDark]}>{time}</Text>
+            <Text style={[styles.itemBody, isDarkMode ? styles.itemBodyDark : undefined]} numberOfLines={2}>{body}</Text>
+            <Text style={[styles.itemTime, isDarkMode ? styles.itemTimeDark : undefined]}>{time}</Text>
         </View>
         {isUnread && <View style={styles.unreadDot} />}
     </View>
@@ -40,7 +40,7 @@ const MessagesRoute = () => {
                     title={msg.subject}
                     body={msg.body}
                     time={new Date(msg.sent_at).toLocaleDateString()}
-                    isUnread={!msg.is_read} // You can use the 'read_by' logic here
+                    isUnread={!msg.is_read}
                     isDarkMode={isDarkMode}
                 />
             )) : <Text style={[styles.emptyText, isDarkMode && styles.textSecondaryDark]}>You have no messages.</Text>}
@@ -107,6 +107,8 @@ export default function InboxScreen() {
             indicatorStyle={{ backgroundColor: '#4A3780' }}
             style={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff' }}
             labelStyle={{ color: isDarkMode ? '#fff' : '#1f2937', fontWeight: '600' }}
+            activeColor={isDarkMode ? '#A78BFA' : '#4A3780'}
+            inactiveColor={isDarkMode ? '#fff' : '#1f2937'}
           />
         )}
       />
@@ -127,9 +129,11 @@ const styles = StyleSheet.create({
   iconContainer: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   iconContainerDark: { backgroundColor: '#374151' },
   itemContent: { flex: 1 },
-  itemTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 4 },
+  itemTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 4, color: '#1f2937' },
   itemBody: { fontSize: 14, color: '#6b7280' },
+  itemBodyDark: { color: '#d1d5db' },
   itemTime: { fontSize: 12, color: '#9ca3af', marginTop: 8 },
+  itemTimeDark: { color: '#a1a1aa' },
   unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1976d2', marginLeft: 10, alignSelf: 'center' },
   emptyText: { textAlign: 'center', color: 'gray', marginTop: 20 },
   textDark: { color: '#fff' },

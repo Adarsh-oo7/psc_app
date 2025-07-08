@@ -29,11 +29,11 @@ export function CustomTabBar({ state, navigation }) {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [currentHumpCenter, setCurrentHumpCenter] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   // Calculate the number of visible tabs
   const visibleRoutes = state.routes.filter((route) => iconMapping[route.name]);
   const tabWidth = width / visibleRoutes.length;
-  
+
   // Find the index of the currently focused visible tab
   const focusedVisibleIndex = visibleRoutes.findIndex((route) => {
     const originalIndex = state.routes.findIndex((r) => r.key === route.key);
@@ -43,11 +43,11 @@ export function CustomTabBar({ state, navigation }) {
   // Memoize the animation function to prevent unnecessary re-renders
   const animateToTab = useCallback((targetIndex) => {
     if (isAnimating) return; // Prevent multiple animations
-    
+
     const targetCenter = tabWidth * (targetIndex + 0.5);
-    
+
     setIsAnimating(true);
-    
+
     Animated.spring(animatedValue, {
       toValue: targetCenter,
       useNativeDriver: false,
@@ -78,7 +78,7 @@ export function CustomTabBar({ state, navigation }) {
     const listener = animatedValue.addListener(({ value }) => {
       setCurrentHumpCenter(value);
     });
-    
+
     return () => {
       animatedValue.removeListener(listener);
     };
@@ -104,12 +104,12 @@ export function CustomTabBar({ state, navigation }) {
     const humpRight = humpCenter + HUMP_WIDTH / 2;
     const cornerRadius = 20;
     const baseY = HUMP_HEIGHT;
-    
+
     // Ensure hump doesn't go outside screen bounds
     const safeHumpLeft = Math.max(cornerRadius + 10, humpLeft);
     const safeHumpRight = Math.min(width - cornerRadius - 10, humpRight);
     const safeHumpCenter = (safeHumpLeft + safeHumpRight) / 2;
-    
+
     return `
       M 0 ${baseY + cornerRadius}
       Q 0 ${baseY} ${cornerRadius} ${baseY}
@@ -144,11 +144,8 @@ export function CustomTabBar({ state, navigation }) {
 
       {/* Container for the buttons */}
       <View style={styles.tabBarInner}>
-        {state.routes.map((route, index) => {
-          // Only render buttons that are in our icon mapping
-          if (!iconMapping[route.name]) return null;
-
-          const isFocused = state.index === index;
+        {visibleRoutes.map((route, index) => {
+          const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
           const iconName = iconMapping[route.name];
 
           const onPress = () => {
@@ -158,9 +155,7 @@ export function CustomTabBar({ state, navigation }) {
             }
           };
 
-          // Calculate if this tab should be elevated (in the hump)
-          const visibleIndex = visibleRoutes.findIndex((r) => r.key === route.key);
-          const isInHump = visibleIndex === focusedVisibleIndex;
+          const isInHump = index === focusedVisibleIndex;
 
           return (
             <TouchableOpacity
@@ -175,9 +170,7 @@ export function CustomTabBar({ state, navigation }) {
                   transform: [{ translateY: -HUMP_HEIGHT + 10 }],
                 }
               ]}>
-                <View style={[
-                  styles.iconWrapper,
-                ]}>
+                <View style={styles.iconWrapper}>
                   <Ionicons
                     name={isFocused ? iconName : `${iconName}-outline`}
                     size={isInHump ? 32 : 26}

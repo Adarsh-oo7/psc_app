@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, SafeAreaView, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, SafeAreaView, Linking, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '@/context/AppContext';
 
 // Reusable component for each setting row
-// CORRECTED: It now accepts an `isDarkMode` prop to style its text correctly
 const SettingRow = ({ icon, title, subtitle, onNavigate, hasSwitch, switchValue, onSwitchChange, isDarkMode }: any) => (
   <TouchableOpacity style={[styles.row, isDarkMode && styles.rowDark]} onPress={onNavigate} disabled={hasSwitch || !onNavigate}>
     <View style={[styles.iconContainer, isDarkMode && styles.iconContainerDark]}>
@@ -27,6 +26,7 @@ const SettingRow = ({ icon, title, subtitle, onNavigate, hasSwitch, switchValue,
 
 export default function SettingsScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { logout, theme, toggleTheme } = useAppContext();
     const isDarkMode = theme === 'dark';
 
@@ -44,10 +44,17 @@ export default function SettingsScreen() {
         <SafeAreaView style={[styles.safeArea, isDarkMode && styles.safeAreaDark]}>
             <ScrollView style={styles.container}>
                 <View style={[styles.header, isDarkMode && styles.headerDark]}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back-outline" size={28} color={isDarkMode ? "#fff" : "#1f2937"} />
+                    {/* Sidebar (drawer) button */}
+                    <TouchableOpacity
+                        onPress={() => navigation.dispatch({ type: 'OPEN_DRAWER' })}
+                        style={styles.menuButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Open sidebar"
+                    >
+                        <Ionicons name="menu" size={28} color={isDarkMode ? "#fff" : "#1f2937"} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>Settings</Text>
+                    <View style={{width:36}} /> {/* Spacer to balance the menu button */}
                 </View>
 
                 <Text style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}>Appearance</Text>
@@ -94,11 +101,11 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f4f5f7' },
     safeAreaDark: { backgroundColor: '#000' },
     container: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
     headerDark: { backgroundColor: '#121212', borderBottomColor: '#374151' },
-    headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#1f2937' },
+    menuButton: { padding: 8 },
+    headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#1f2937', flex: 1, textAlign: 'center' },
     headerTitleDark: { color: '#fff' },
-    backButton: { padding: 8, marginRight: 16 },
     sectionTitle: { fontSize: 14, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', paddingHorizontal: 24, marginTop: 24, marginBottom: 8 },
     sectionTitleDark: { color: '#9ca3af' },
     section: { backgroundColor: '#fff', borderRadius: 12, marginHorizontal: 16, overflow: 'hidden' },

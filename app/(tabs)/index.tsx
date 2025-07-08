@@ -1,22 +1,44 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '@/context/AppContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { DrawerActions } from '@react-navigation/native'; // <-- Add this
 
-// Reusable component for the grid buttons
+const sections = [
+  { title: "Learn", icon: "library-outline", route: "/(tabs)/topics" },
+  { title: "Practice", icon: "barbell-outline", route: "/(tabs)/practice" },
+  { title: "Quiz", icon: "timer-outline", route: "/(tabs)/quiz" },
+  { title: "Daily Exam", icon: "calendar-outline", route: "/(tabs)/daily-exam" },
+  { title: "Model Exam", icon: "school-outline", route: "/(tabs)/model-exam" },
+  { title: "PYQ Exam", icon: "document-text-outline", route: "/(tabs)/pyq-exam" },
+  { title: "Game", icon: "game-controller-outline", route: "/(tabs)/game" },
+  { title: "Battle", icon: "flame-outline", route: "/(tabs)/battle" },
+];
+
+const comingSoon = ["Game", "Battle"];
+
 const ActionButton = ({ title, icon, onPress, isDarkMode }: any) => (
-  <TouchableOpacity style={[styles.actionButton, isDarkMode && styles.actionButtonDark]} onPress={onPress}>
+  <TouchableOpacity
+    accessibilityRole="button"
+    style={[styles.actionButton, isDarkMode && styles.actionButtonDark]}
+    onPress={onPress}
+    activeOpacity={0.85}
+  >
     <View style={[styles.iconContainer, isDarkMode && styles.iconContainerDark]}>
-      <Ionicons name={icon} size={28} color="#4A3780" />
+      <Ionicons name={icon} size={30} color={isDarkMode ? "#cabfff" : "#4A3780"} />
     </View>
-    <Text style={[styles.actionButtonText, isDarkMode && styles.textDark]}>{title}</Text>
+    <Text style={[styles.actionButtonText, isDarkMode && styles.textDark]}>
+      {title}
+    </Text>
   </TouchableOpacity>
 );
 
 export default function HomeScreen() {
   const router = useRouter();
+  const navigation = useNavigation(); // <-- Add this
   const { theme } = useAppContext();
   const isDarkMode = theme === 'dark';
 
@@ -24,38 +46,63 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.safeArea, isDarkMode && styles.safeAreaDark]}>
       <ScrollView 
         style={[styles.container, isDarkMode && styles.containerDark]}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* The header is now part of this page, not the layout */}
-        <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-              <Ionicons name="menu" size={28} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>PSC WINNER</Text>
-            <TouchableOpacity onPress={() => router.push('/inbox')}>
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
-            </TouchableOpacity>
+        {/* Header */}
+        <View style={[styles.header, isDarkMode && styles.headerDark]}>
+          {/* Sidebar (drawer) button */}
+          <TouchableOpacity
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            style={styles.sidebarButton}
+            accessibilityRole="button"
+            accessibilityLabel="Open sidebar"
+          >
+            <Ionicons name="menu" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>PSC <Text style={styles.headerTitleHighlight}>WINNER</Text></Text>
+          <TouchableOpacity
+            onPress={() => router.push('/inbox')}
+            style={styles.notificationButton}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications"
+          >
+            <Ionicons name="notifications-outline" size={26} color="#fff" />
+            {/* Example notification dot */}
+            <View style={styles.notificationDot} />
+          </TouchableOpacity>
         </View>
 
-        {/* Congratulations Banner */}
+        {/* Banner */}
         <View style={styles.bannerContainer}>
           <Image 
-            // You can replace this with a real image URL from your backend or assets
-            source={{ uri: 'https://i.imgur.com/vHqVp1A.png' }} 
-            style={styles.bannerImage} 
+            source={{ uri: 'https://www.wbhrb.in/wp-content/uploads/2025/02/kpsc-kas-result-768x432.jpg' }} 
+            style={styles.bannerImage}
+            resizeMode="cover"
           />
+          {/* Gradient overlay for readability */}
+          <LinearGradient
+            colors={['rgba(74,55,128,0.15)', 'rgba(74,55,128,0.60)']}
+            style={styles.bannerGradient}
+          />
+          <Text style={styles.bannerText}>Welcome to your PSC Success Hub!</Text>
         </View>
 
-        {/* Action Grid */}
+        {/* Section Grid */}
         <View style={styles.grid}>
-          <ActionButton title="Learn" icon="library-outline" onPress={() => router.push('/(tabs)/study')} isDarkMode={isDarkMode} />
-          <ActionButton title="Practice" icon="barbell-outline" onPress={() => router.push('/(tabs)/practice')} isDarkMode={isDarkMode} />
-          <ActionButton title="Quiz" icon="timer-outline" onPress={() => router.push('/quiz?mode=preferred')} isDarkMode={isDarkMode} />
-          <ActionButton title="Daily Exam" icon="calendar-outline" onPress={() => router.push('/quiz?daily=true')} isDarkMode={isDarkMode} />
-          <ActionButton title="Model Exam" icon="school-outline" onPress={() => router.push('/(tabs)/practice')} isDarkMode={isDarkMode} />
-          <ActionButton title="PYQ Exam" icon="document-text-outline" onPress={() => router.push('/(tabs)/practice')} isDarkMode={isDarkMode} />
-          <ActionButton title="Game" icon="game-controller-outline" onPress={() => Alert.alert("Coming Soon!")} isDarkMode={isDarkMode} />
-          <ActionButton title="Battle" icon="flame-outline" onPress={() => Alert.alert("Coming Soon!")} isDarkMode={isDarkMode} />
+          {sections.map(({ title, icon, route }, i) => (
+            <ActionButton 
+              key={title}
+              title={title}
+              icon={icon}
+              isDarkMode={isDarkMode}
+              onPress={
+                comingSoon.includes(title)
+                  ? () => Alert.alert(`${title} Mode`, `${title} Mode Coming Soon!`)
+                  : () => router.push(route)
+              }
+            />
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -64,74 +111,149 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#4A3780' },
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  safeAreaDark: { backgroundColor: '#181828' },
+  container: { flex: 1, backgroundColor: '#f6f7fb' },
+  containerDark: { backgroundColor: '#181828' },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 4 : 8,
+    paddingBottom: 14,
     backgroundColor: '#4A3780',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.20,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  headerDark: {
+    backgroundColor: '#231c3a',
+    shadowColor: "#cabfff",
+  },
+  sidebarButton: {
+    padding: 8,
+    marginRight: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 25,
     fontWeight: 'bold',
     color: '#fff',
+    letterSpacing: 1.3,
+    textShadowColor: '#231c3a88',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  headerTitleHighlight: {
+    color: '#cabfff',
+    fontWeight: '900',
+  },
+  notificationButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  notificationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: '#ff6d6a',
+    position: 'absolute',
+    top: 7,
+    right: 8,
+    borderWidth: 1.5,
+    borderColor: '#fff',
   },
   bannerContainer: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 16,
+    marginHorizontal: 18,
+    marginTop: 12,
+    borderRadius: 18,
     overflow: 'hidden',
-    elevation: 5,
+    minHeight: 138,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    position: 'relative',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowOpacity: 0.09,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+    marginBottom: 16,
   },
   bannerImage: {
     width: '100%',
-    height: 180,
-    resizeMode: 'cover',
+    height: 145,
+    borderRadius: 0,
+  },
+  bannerGradient: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 0,
+  },
+  bannerText: {
+    position: 'absolute',
+    left: 18,
+    bottom: 16,
+    color: '#fff',
+    fontSize: 19,
+    fontWeight: '700',
+    letterSpacing: 1.01,
+    textShadowColor: "#00000045",
+    textShadowRadius: 8,
+    textShadowOffset: { width: 0, height: 2 },
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    paddingHorizontal: 8,
-    marginTop: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginTop: 8,
   },
   actionButton: {
-    width: '30%',
-    aspectRatio: 1,
+    width: '47%',
+    aspectRatio: 1.05,
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#e5e7eb'
+    marginBottom: 17,
+    shadowColor: '#cabfff',
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1.2,
+    borderColor: '#e5e7eb',
+    // Ripple on Android
+    ...Platform.select({
+      android: { overflow: 'hidden' }
+    }),
+  },
+  actionButtonDark: {
+    backgroundColor: '#23223a',
+    borderColor: '#3b3353',
+    shadowColor: '#cabfff',
   },
   iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(74, 55, 128, 0.1)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(74, 55, 128, 0.09)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  iconContainerDark: {
+    backgroundColor: 'rgba(202,191,255,0.08)',
   },
   actionButtonText: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#3b3353',
+    letterSpacing: 0.1,
+    textAlign: 'center',
   },
-  // Dark Mode Styles
-  containerDark: { backgroundColor: '#121212' },
-  textDark: { color: '#fff' },
-  actionButtonDark: {
-      backgroundColor: '#1f2937',
-      borderColor: '#374151'
-  },
+  textDark: { color: '#cabfff' },
 });

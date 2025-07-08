@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { 
     View, Text, StyleSheet, TextInput, TouchableOpacity, 
-    Image, ScrollView, SafeAreaView, ActivityIndicator, Alert, Button
+    Image, ScrollView, SafeAreaView, ActivityIndicator, Alert, Button, Platform
 } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useNavigation } from 'expo-router';
 import useSWR from 'swr';
 import { useAppContext } from '@/context/AppContext';
 import apiClient from '@/lib/apiClient';
 import * as ImagePicker from 'expo-image-picker';
 import Modal from 'react-native-modal';
 import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions } from '@react-navigation/native';
 
 // --- Multi-Select Modal Component ---
 const MultiSelectModal = ({ isVisible, title, options, selected, onSelect, onClose, isDarkMode }: any) => {
     const [currentSelection, setCurrentSelection] = useState(new Set(selected));
+
+    useEffect(() => {
+        setCurrentSelection(new Set(selected));
+    }, [selected, isVisible]);
 
     const handleToggle = (id: number) => {
         const newSelection = new Set(currentSelection);
@@ -55,10 +60,10 @@ const MultiSelectModal = ({ isVisible, title, options, selected, onSelect, onClo
     );
 };
 
-
 export default function EditProfileScreen() {
     const { user, fetcher, theme } = useAppContext();
     const router = useRouter();
+    const navigation = useNavigation();
     const isDarkMode = theme === 'dark';
 
     const { data: profileData, mutate } = useSWR(user ? '/auth/profile/' : null, fetcher);
@@ -73,7 +78,6 @@ export default function EditProfileScreen() {
     });
     const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
     const [isExamModalVisible, setExamModalVisible] = useState(false);
     const [isTopicModalVisible, setTopicModalVisible] = useState(false);
 
@@ -146,7 +150,26 @@ export default function EditProfileScreen() {
 
     return (
         <SafeAreaView style={[styles.safeArea, isDarkMode && styles.containerDark]}>
-            <Stack.Screen options={{ title: "Edit Profile", headerTintColor: isDarkMode ? '#fff' : '#000' }} />
+            {/* Custom header with sidebar (drawer) button */}
+            <View style={[styles.header, isDarkMode && styles.headerDark]}>
+                <TouchableOpacity
+                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                    style={styles.menuButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open sidebar"
+                >
+                    <Ionicons name="menu" size={28} color={isDarkMode ? "#fff" : "#1f2937"} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, isDarkMode && styles.headerTitleDark]}>Edit Profile</Text>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                >
+                    <Ionicons name="arrow-back-outline" size={28} color={isDarkMode ? "#fff" : "#1f2937"} />
+                </TouchableOpacity>
+            </View>
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.avatarSection}>
                     <Image
@@ -210,6 +233,25 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
     container: { padding: 24 },
     containerDark: { backgroundColor: '#121212' },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 10 : 8,
+        paddingBottom: 12,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+    },
+    headerDark: {
+        backgroundColor: '#1f2937',
+        borderBottomColor: '#374151',
+    },
+    menuButton: { padding: 8, marginRight: 6 },
+    backButton: { padding: 8, marginLeft: 6 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1f2937', letterSpacing: 1, flex: 1, textAlign: 'center' },
+    headerTitleDark: { color: '#fff' },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     avatarSection: { alignItems: 'center', marginBottom: 32 },
     avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 12, backgroundColor: '#e5e7eb' },
