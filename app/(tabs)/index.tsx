@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '@/context/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { DrawerActions } from '@react-navigation/native'; // <-- Add this
+import { DrawerActions } from '@react-navigation/native';
 
 const sections = [
   { title: "Learn", icon: "library-outline", route: "/(tabs)/topics" },
@@ -38,13 +38,13 @@ const ActionButton = ({ title, icon, onPress, isDarkMode }: any) => (
 
 export default function HomeScreen() {
   const router = useRouter();
-  const navigation = useNavigation(); // <-- Add this
+  const navigation = useNavigation();
   const { theme } = useAppContext();
   const isDarkMode = theme === 'dark';
 
   return (
     <SafeAreaView style={[styles.safeArea, isDarkMode && styles.safeAreaDark]}>
-      <ScrollView 
+      <ScrollView
         style={[styles.container, isDarkMode && styles.containerDark]}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
@@ -75,8 +75,8 @@ export default function HomeScreen() {
 
         {/* Banner */}
         <View style={styles.bannerContainer}>
-          <Image 
-            source={{ uri: 'https://www.wbhrb.in/wp-content/uploads/2025/02/kpsc-kas-result-768x432.jpg' }} 
+          <Image
+            source={{ uri: 'https://www.wbhrb.in/wp-content/uploads/2025/02/kpsc-kas-result-768x432.jpg' }}
             style={styles.bannerImage}
             resizeMode="cover"
           />
@@ -91,7 +91,7 @@ export default function HomeScreen() {
         {/* Section Grid */}
         <View style={styles.grid}>
           {sections.map(({ title, icon, route }, i) => (
-            <ActionButton 
+            <ActionButton
               key={title}
               title={title}
               icon={icon}
@@ -109,6 +109,7 @@ export default function HomeScreen() {
   );
 }
 
+// Replace deprecated shadow* and textShadow* props with boxShadow and textShadow for web
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#4A3780' },
   safeAreaDark: { backgroundColor: '#181828' },
@@ -125,15 +126,27 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     marginBottom: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.20,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 8px 16px rgba(0,0,0,0.2)",
+      },
+      default: {
+        shadowColor: "#000",
+        shadowOpacity: 0.20,
+        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: 16,
+        elevation: 12,
+      }
+    }),
   },
   headerDark: {
     backgroundColor: '#231c3a',
     shadowColor: "#cabfff",
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 8px 16px rgba(202,191,255,0.2)",
+      }
+    }),
   },
   sidebarButton: {
     padding: 8,
@@ -144,9 +157,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     letterSpacing: 1.3,
-    textShadowColor: '#231c3a88',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    ...Platform.select({
+      web: {
+        textShadow: "0px 2px 6px #231c3a88",
+      },
+      default: {
+        textShadowColor: '#231c3a88',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 6,
+      }
+    }),
   },
   headerTitleHighlight: {
     color: '#cabfff',
@@ -176,11 +196,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'flex-start',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOpacity: 0.09,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 8px 18px rgba(0,0,0,0.09)",
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.09,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 8,
+      }
+    }),
     marginBottom: 16,
   },
   bannerImage: {
@@ -200,9 +227,16 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '700',
     letterSpacing: 1.01,
-    textShadowColor: "#00000045",
-    textShadowRadius: 8,
-    textShadowOffset: { width: 0, height: 2 },
+    ...Platform.select({
+      web: {
+        textShadow: "0px 2px 8px #00000045",
+      },
+      default: {
+        textShadowColor: "#00000045",
+        textShadowRadius: 8,
+        textShadowOffset: { width: 0, height: 2 },
+      }
+    }),
   },
   grid: {
     flexDirection: 'row',
@@ -219,14 +253,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 17,
-    shadowColor: '#cabfff',
-    shadowOpacity: 0.14,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 5,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 4px 10px rgba(202,191,255,0.14)",
+      },
+      default: {
+        shadowColor: '#cabfff',
+        shadowOpacity: 0.14,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 10,
+        elevation: 5,
+      }
+    }),
     borderWidth: 1.2,
     borderColor: '#e5e7eb',
-    // Ripple on Android
     ...Platform.select({
       android: { overflow: 'hidden' }
     }),
@@ -235,6 +275,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#23223a',
     borderColor: '#3b3353',
     shadowColor: '#cabfff',
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 4px 10px rgba(202,191,255,0.14)",
+      }
+    }),
   },
   iconContainer: {
     width: 54,

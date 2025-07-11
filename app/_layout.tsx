@@ -65,6 +65,19 @@ function RootLayoutNav() {
       <Drawer.Screen name="login" options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="register" options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="practice-session" options={{ drawerItemStyle: { display: 'none' } }} />
+         {/* <Drawer.Screen name="daily-exam" options={{ drawerItemStyle: { display: 'none' } }} /> */}
+    {/* <Drawer.Screen name="daily-exam" options={{ drawerItemStyle: { display: 'none' } }} /> */}
+
+    <Drawer.Screen name="model-exam-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="model-quiz/[modelExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+
+    <Drawer.Screen name="daily-quiz/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="leaderboard/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+
+
+        <Drawer.Screen name="pyq-exam" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="pyq-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
+
     </Drawer>
   );
 }

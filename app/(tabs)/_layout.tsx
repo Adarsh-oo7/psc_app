@@ -117,6 +117,8 @@ export default function TabLayout() {
       <Tabs.Screen name="study" options={{ href: null }} />
       <Tabs.Screen name="progress" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="daily-exam" options={{ title: 'Daily Exam' }} />
+
     </Tabs>
   );
 }
