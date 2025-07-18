@@ -73,11 +73,14 @@ function RootLayoutNav() {
 
     <Drawer.Screen name="daily-quiz/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
     <Drawer.Screen name="leaderboard/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="exam-calendar" options={{ drawerItemStyle: { display: 'none' } }} />
 
 
         <Drawer.Screen name="pyq-exam" options={{ drawerItemStyle: { display: 'none' } }} />
     <Drawer.Screen name="pyq-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
-
+    <Drawer.Screen name="community-profile/[username]" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="groups" options={{ drawerItemStyle: { display: 'none' } }} />
+    <Drawer.Screen name="group-chat/[groupId]" options={{ drawerItemStyle: { display: 'none' } }} />
     </Drawer>
   );
 }

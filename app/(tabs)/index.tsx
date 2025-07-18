@@ -7,10 +7,11 @@ import { useAppContext } from '@/context/AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DrawerActions } from '@react-navigation/native';
 
+
 const sections = [
   { title: "Learn", icon: "library-outline", route: "/(tabs)/topics" },
   { title: "Practice", icon: "barbell-outline", route: "/(tabs)/practice" },
-  { title: "Quiz", icon: "timer-outline", route: "/(tabs)/quiz" },
+  { title: "Exam Calendar & Syllabus", icon: "newspaper-outline", route: "/exam-calendar" },
   { title: "Daily Exam", icon: "calendar-outline", route: "/(tabs)/daily-exam" },
   { title: "Model Exam", icon: "school-outline", route: "/(tabs)/model-exam" },
   { title: "PYQ Exam", icon: "document-text-outline", route: "/(tabs)/pyq-exam" },

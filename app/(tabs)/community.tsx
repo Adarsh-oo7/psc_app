@@ -86,16 +86,21 @@ const VideoComponent = ({ source, style }: { source: string, style: any }) => {
 // ===============================================================
 const PostCard = ({ item, isDarkMode, onLike, onBookmark }: any) => {
     const [commentsVisible, setCommentsVisible] = useState(false);
+    const router = useRouter(); // Get the router here
 
     return (
         <View style={[styles.card, isDarkMode && styles.cardDark]}>
-            <View style={styles.cardHeader}>
+            {/* CORRECTED: This header is now a button */}
+            <TouchableOpacity 
+                style={styles.cardHeader} 
+                onPress={() => router.push(`/community-profile/${item.author.username}`)}
+            >
                 <Image source={{ uri: item.author.profile_photo || 'https://via.placeholder.com/100' }} style={styles.avatar} />
                 <View>
                     <Text style={[styles.authorName, isDarkMode && styles.textDark]}>{item.author.username}</Text>
                     <Text style={[styles.timestamp, isDarkMode && styles.textSecondaryDark]}>{new Date(item.created_at).toLocaleDateString()}</Text>
                 </View>
-            </View>
+            </TouchableOpacity>
 
             <Text style={[styles.title, isDarkMode && styles.textDark]}>{item.title}</Text>
             

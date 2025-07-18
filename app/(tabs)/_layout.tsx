@@ -88,10 +88,10 @@ export default function TabLayout() {
         PSC WINNER
       </Text>
       <TouchableOpacity 
-        onPress={() => router.push('/(tabs)/progress')} 
+        onPress={() => router.push('/inbox')} 
         style={{ padding: 8 }}
       >
-        <Ionicons name="stats-chart" size={24} color="#fff" />
+        <Ionicons name="chatbubble-outline" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   );
