@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { 
     View, Text, StyleSheet, FlatList, Image, 
     TouchableOpacity, ActivityIndicator, Dimensions, 
-    TextInput, Button, Alert, KeyboardAvoidingView, Platform 
+    TextInput, Button, Alert, Platform 
 } from 'react-native';
 import useSWR from 'swr';
 import { useAppContext } from '@/context/AppContext';
@@ -10,12 +10,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import apiClient from '@/lib/apiClient';
-import { VideoView, useVideoPlayer } from 'expo-video'; // Updated import
+import { Video } from 'expo-av';
 
-// ===============================================================
-// --- NEW: Comment Section Component ---
-// ===============================================================
-const CommentSection = ({ postId, isDarkMode }: { postId: number, isDarkMode: boolean }) => {
+const { width } = Dimensions.get('window');
+const MEDIA_MAX_HEIGHT = width * 0.7;
+const MEDIA_MAX_WIDTH = width - 32;
+
+// --- Comment Section ---
+const CommentSection = ({ postId, isDarkMode }) => {
     const { fetcher } = useAppContext();
     const commentsUrl = `/community/posts/${postId}/comments/`;
     const { data: comments, error, isLoading, mutate } = useSWR(commentsUrl, fetcher);
@@ -28,7 +30,7 @@ const CommentSection = ({ postId, isDarkMode }: { postId: number, isDarkMode: bo
         try {
             await apiClient.post(commentsUrl, { text: newComment });
             setNewComment('');
-            mutate(); // Re-fetch comments to show the new one
+            mutate();
         } catch (err) {
             Alert.alert("Error", "Failed to post comment.");
         } finally {
@@ -40,14 +42,12 @@ const CommentSection = ({ postId, isDarkMode }: { postId: number, isDarkMode: bo
         <View style={[styles.commentsContainer, isDarkMode && styles.commentsContainerDark]}>
             {isLoading && <ActivityIndicator />}
             {error && <Text style={styles.errorText}>Could not load comments.</Text>}
-            
-            {comments && comments.map((comment: any) => (
+            {comments && comments.map((comment) => (
                 <View key={comment.id} style={styles.comment}>
                     <Text style={[styles.authorName, isDarkMode && styles.textDark]}>{comment.author.username}</Text>
                     <Text style={[styles.commentText, isDarkMode && styles.textSecondaryDark]}>{comment.text}</Text>
                 </View>
             ))}
-            
             <View style={styles.commentInputContainer}>
                 <TextInput
                     style={[styles.commentInput, isDarkMode && styles.commentInputDark]}
@@ -62,53 +62,102 @@ const CommentSection = ({ postId, isDarkMode }: { postId: number, isDarkMode: bo
     );
 };
 
-// ===============================================================
-// --- Video Component with expo-video ---
-// ===============================================================
-const VideoComponent = ({ source, style }: { source: string, style: any }) => {
-    const player = useVideoPlayer(source, player => {
-        player.loop = false;
-        player.play();
-    });
+// --- Smart Media (Image/Video) with proper auto sizing ---
+const SmartMedia = React.memo(({ type, uri, isVisible }) => {
+    const [mediaDims, setMediaDims] = useState({ width: MEDIA_MAX_WIDTH, height: MEDIA_MAX_HEIGHT });
+    const videoRef = useRef(null);
 
-    return (
-        <VideoView
-            style={style}
-            player={player}
-            allowsFullscreen
-            allowsPictureInPicture
-        />
-    );
-};
+    React.useEffect(() => {
+        if (type === 'IMAGE' && uri) {
+            Image.getSize(uri, (w, h) => {
+                let displayWidth, displayHeight;
+                const aspectRatio = w / h;
+                if (aspectRatio >= 1) {
+                    // Landscape or square: fit to max width, scale height
+                    displayWidth = MEDIA_MAX_WIDTH;
+                    displayHeight = Math.min(MEDIA_MAX_HEIGHT, MEDIA_MAX_WIDTH / aspectRatio);
+                } else {
+                    // Portrait: fit to max height, scale width
+                    displayHeight = MEDIA_MAX_HEIGHT;
+                    displayWidth = Math.min(MEDIA_MAX_WIDTH, MEDIA_MAX_HEIGHT * aspectRatio);
+                }
+                setMediaDims({ width: displayWidth, height: displayHeight });
+            }, () => {
+                setMediaDims({ width: MEDIA_MAX_WIDTH, height: MEDIA_MAX_HEIGHT });
+            });
+        }
+    }, [type, uri]);
 
-// ===============================================================
-// --- Post Card Component ---
-// ===============================================================
-const PostCard = ({ item, isDarkMode, onLike, onBookmark }: any) => {
+    const handleVideoLoad = (status) => {
+        if (status.naturalSize && status.naturalSize.width && status.naturalSize.height) {
+            const { width: vW, height: vH } = status.naturalSize;
+            let displayWidth, displayHeight;
+            const aspectRatio = vW / vH;
+            if (aspectRatio >= 1) {
+                displayWidth = MEDIA_MAX_WIDTH;
+                displayHeight = Math.min(MEDIA_MAX_HEIGHT, MEDIA_MAX_WIDTH / aspectRatio);
+            } else {
+                displayHeight = MEDIA_MAX_HEIGHT;
+                displayWidth = Math.min(MEDIA_MAX_WIDTH, MEDIA_MAX_HEIGHT * aspectRatio);
+            }
+            setMediaDims({ width: displayWidth, height: displayHeight });
+        }
+    };
+
+    // Autoplay/pause based on visibility
+    React.useEffect(() => {
+        if (videoRef.current) {
+            if (isVisible) videoRef.current.playAsync?.();
+            else videoRef.current.pauseAsync?.();
+        }
+    }, [isVisible]);
+
+    if (!uri) return null;
+    if (type === 'IMAGE') {
+        return (
+            <Image source={{ uri }} style={[styles.postImage, mediaDims]} resizeMode="cover" />
+        );
+    } else if (type === 'VIDEO') {
+        return (
+            <Video
+                ref={videoRef}
+                source={{ uri }}
+                style={[styles.postImage, mediaDims]}
+                resizeMode="contain"
+                useNativeControls
+                shouldPlay={isVisible}
+                isLooping={false}
+                paused={!isVisible}
+                onLoad={handleVideoLoad}
+            />
+        );
+    }
+    return null;
+});
+
+// --- Post Card ---
+const PostCard = ({ item, isDarkMode, onLike, onBookmark, isVisible }) => {
     const [commentsVisible, setCommentsVisible] = useState(false);
-    const router = useRouter(); // Get the router here
+    const router = useRouter();
+
+    // Avatar fallback
+    const authorAvatar = item.author.profile_photo && item.author.profile_photo.startsWith('http')
+        ? item.author.profile_photo
+        : 'https://via.placeholder.com/100';
 
     return (
         <View style={[styles.card, isDarkMode && styles.cardDark]}>
-            {/* CORRECTED: This header is now a button */}
-            <TouchableOpacity 
-                style={styles.cardHeader} 
-                onPress={() => router.push(`/community-profile/${item.author.username}`)}
-            >
-                <Image source={{ uri: item.author.profile_photo || 'https://via.placeholder.com/100' }} style={styles.avatar} />
+            <TouchableOpacity
+                style={styles.cardHeader}
+                onPress={() => router.push(`/community-profile/${item.author.username}`)}>
+                <Image source={{ uri: authorAvatar }} style={styles.avatar} />
                 <View>
                     <Text style={[styles.authorName, isDarkMode && styles.textDark]}>{item.author.username}</Text>
                     <Text style={[styles.timestamp, isDarkMode && styles.textSecondaryDark]}>{new Date(item.created_at).toLocaleDateString()}</Text>
                 </View>
             </TouchableOpacity>
-
             <Text style={[styles.title, isDarkMode && styles.textDark]}>{item.title}</Text>
-            
-            {item.content_type === 'IMAGE' && item.file && <Image source={{ uri: item.file }} style={styles.postImage} />}
-            {item.content_type === 'VIDEO' && item.file && (
-                <VideoComponent source={item.file} style={styles.postImage} />
-            )}
-
+            <SmartMedia type={item.content_type} uri={item.file} isVisible={!!isVisible} />
             <View style={[styles.actionsContainer, isDarkMode && styles.actionsContainerDark]}>
                 <TouchableOpacity style={styles.actionButton} onPress={onLike}>
                     <Ionicons name={item.is_liked_by_user ? "heart" : "heart-outline"} size={24} color={item.is_liked_by_user ? '#ef4444' : (isDarkMode ? '#9ca3af' : '#6b7280')} />
@@ -122,30 +171,32 @@ const PostCard = ({ item, isDarkMode, onLike, onBookmark }: any) => {
                     <Ionicons name={item.is_bookmarked_by_user ? "bookmark" : "bookmark-outline"} size={24} color={isDarkMode ? '#9ca3af' : '#6b7280'} />
                 </TouchableOpacity>
             </View>
-            
             {commentsVisible && <CommentSection postId={item.id} isDarkMode={isDarkMode} />}
         </View>
     );
 };
 
-// ===============================================================
-// --- Main Community Screen Component ---
-// ===============================================================
+// --- Community Main ---
 export default function CommunityScreen() {
     const { user, fetcher, theme, isContentCreator } = useAppContext();
     const router = useRouter();
     const isDarkMode = theme === 'dark';
     const { data: posts, error, isLoading, mutate } = useSWR(user ? '/community/posts/' : null, fetcher);
 
-    const handleLike = useCallback(async (postId: number) => {
+    const [visibleItems, setVisibleItems] = useState([]);
+    const onViewableItemsChanged = useRef(({ viewableItems }) => {
+        setVisibleItems(viewableItems.map(v => v.index));
+    });
+    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60, waitForInteraction: true });
+
+    const handleLike = useCallback(async (postId) => {
         if (!user) return Alert.alert("Please login to like posts.");
-        
-        mutate((currentData: any) => {
+        mutate((currentData) => {
             if (!currentData) return currentData;
-            return currentData.map((post: any) => {
+            return currentData.map((post) => {
                 if (post.id === postId) {
-                    return { 
-                        ...post, 
+                    return {
+                        ...post,
                         is_liked_by_user: !post.is_liked_by_user,
                         likes_count: post.is_liked_by_user ? post.likes_count - 1 : post.likes_count + 1
                     };
@@ -157,22 +208,21 @@ export default function CommunityScreen() {
         try {
             await apiClient.post(`/community/posts/${postId}/like/`);
             mutate();
-        } catch (e) {
-            console.error("Failed to like post", e);
+        } catch {
             mutate();
         }
     }, [user, mutate]);
 
-    const handleBookmark = useCallback(async (postId: number) => {
+    const handleBookmark = useCallback(async (postId) => {
         if (!user) return Alert.alert("Please login to bookmark posts.");
-        mutate((data: any) => {
+        mutate((data) => {
             if (!data) return data;
-            return data.map((p: any) => p.id === postId ? {...p, is_bookmarked_by_user: !p.is_bookmarked_by_user} : p);
+            return data.map((p) => p.id === postId ? { ...p, is_bookmarked_by_user: !p.is_bookmarked_by_user } : p);
         }, false);
         try {
             await apiClient.post(`/community/posts/${postId}/bookmark/`);
             mutate();
-        } catch (e) {
+        } catch {
             mutate();
         }
     }, [user, mutate]);
@@ -185,12 +235,13 @@ export default function CommunityScreen() {
             <FlatList
                 data={posts}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                     <PostCard 
                         item={item} 
                         isDarkMode={isDarkMode} 
                         onLike={() => handleLike(item.id)}
                         onBookmark={() => handleBookmark(item.id)}
+                        isVisible={visibleItems.includes(index)}
                     />
                 )}
                 contentContainerStyle={{ paddingBottom: 120 }}
@@ -199,6 +250,8 @@ export default function CommunityScreen() {
                         <Text style={[styles.emptyText, isDarkMode && styles.textSecondaryDark]}>No posts yet.</Text>
                     </View>
                 )}
+                onViewableItemsChanged={onViewableItemsChanged.current}
+                viewabilityConfig={viewabilityConfig.current}
             />
             {isContentCreator && (
                 <TouchableOpacity style={styles.fab} onPress={() => router.push('/create-post')}>
@@ -220,7 +273,7 @@ const styles = StyleSheet.create({
     authorName: { fontWeight: 'bold', fontSize: 16 },
     timestamp: { fontSize: 12, color: '#6b7280' },
     title: { fontSize: 16, paddingHorizontal: 12, paddingBottom: 12, lineHeight: 22 },
-    postImage: { width: '100%', height: Dimensions.get('window').width - 32, backgroundColor: '#000' },
+    postImage: { backgroundColor: '#000', borderRadius: 14, marginTop: 8, alignSelf: 'center', marginBottom: 10 },
     actionsContainer: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#f0f2f5' },
     actionsContainerDark: { borderTopColor: '#374151' },
     actionButton: { flexDirection: 'row', alignItems: 'center' },

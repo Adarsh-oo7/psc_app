@@ -13,6 +13,10 @@ export default function TabLayout() {
   const { theme } = useAppContext();
   const isDarkMode = theme === 'dark';
 
+  // Colors for header (same as home page dark theme)
+  const HOME_DARK_BG = '#23232b'; // <-- Use your exact home page dark color
+  const HOME_DARK_TEXT = '#fff';
+
   // Handle Android back button for better UX
   useFocusEffect(
     React.useCallback(() => {
@@ -48,62 +52,87 @@ export default function TabLayout() {
     }, [navigationState, router])
   );
 
-  // Custom header with shadow and rounded corners for a modern look
-  const CustomHeader = ({ navigation }) => (
-    <View
-      style={{
-        backgroundColor: isDarkMode ? '#1f2937' : '#4A3780', // Standard theme: blue for light, dark gray for dark
-        paddingTop: Platform.OS === 'ios' ? 54 : 30,
-        paddingBottom: 16,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 6,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}
-    >
-      <TouchableOpacity 
-        onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
-        style={{ padding: 8 }}
-      >
-        <Ionicons name="menu" size={28} color="#fff" />
-      </TouchableOpacity>
-      <Text
+  // Custom header with theme colors
+  const CustomHeader = ({ navigation, route }) => {
+    // Use the "home" dark color for Community and Profile
+    // You can adjust the tab names if your actual route names differ
+    const isCommunityOrProfile = 
+      route?.name === 'community' || route?.name === 'profile';
+
+    const backgroundColor = isDarkMode && isCommunityOrProfile
+      ? HOME_DARK_BG
+      : isDarkMode
+        ? '#181f2b'
+        : '#4A3780';
+
+    const textColor = isDarkMode && isCommunityOrProfile
+      ? HOME_DARK_TEXT
+      : isDarkMode
+        ? '#f8fafc'
+        : '#fff';
+
+    return (
+      <View
         style={{
-          color: '#fff',
-          fontWeight: 'bold',
-          fontSize: 22,
-          letterSpacing: 1.1,
-          textShadowColor: 'rgba(0,0,0,0.18)',
-          textShadowOffset: { width: 1, height: 2 },
-          textShadowRadius: 3,
+          backgroundColor,
+          paddingTop: Platform.OS === 'ios' ? 54 : 30,
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
+          shadowColor: isDarkMode ? '#000' : '#4A3780',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: isDarkMode ? 0.12 : 0.18,
+          shadowRadius: 10,
+          elevation: 6,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        PSC WINNER
-      </Text>
-      <TouchableOpacity 
-        onPress={() => router.push('/inbox')} 
-        style={{ padding: 8 }}
-      >
-        <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity 
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+          style={{ padding: 8 }}
+        >
+          <Ionicons name="menu" size={28} color={textColor} />
+        </TouchableOpacity>
+        <Text
+          style={{
+            color: textColor,
+            fontWeight: 'bold',
+            fontSize: 22,
+            letterSpacing: 1.1,
+            textShadowColor: isDarkMode ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.18)',
+            textShadowOffset: { width: 1, height: 2 },
+            textShadowRadius: 3,
+          }}
+        >
+          PSC WINNER
+        </Text>
+        <TouchableOpacity 
+          onPress={() => router.push('/inbox')} 
+          style={{ padding: 8 }}
+        >
+          <Ionicons name="chatbubble-outline" size={24} color={textColor} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <Tabs
-      tabBar={props => <CustomTabBar {...props} />}
+      tabBar={props => <CustomTabBar {...props} isDarkMode={isDarkMode} />}
       initialRouteName="index"
-      screenOptions={{
-        header: (props) => <CustomHeader {...props} />,
+      screenOptions={({ route }) => ({
+        header: (props) => <CustomHeader {...props} route={route} />,
         headerShown: true,
-      }}
+        tabBarStyle: {
+          backgroundColor: isDarkMode ? '#181f2b' : '#fff',
+          borderTopColor: isDarkMode ? '#232d3a' : '#eee',
+        },
+        tabBarActiveTintColor: isDarkMode ? '#4A90E2' : '#4A3780',
+        tabBarInactiveTintColor: isDarkMode ? '#b0b9c5' : '#888',
+      })}
     >
       <Tabs.Screen name="community" options={{ title: 'Community' }} />
       <Tabs.Screen 
@@ -118,7 +147,6 @@ export default function TabLayout() {
       <Tabs.Screen name="progress" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="daily-exam" options={{ title: 'Daily Exam' }} />
-
     </Tabs>
   );
 }

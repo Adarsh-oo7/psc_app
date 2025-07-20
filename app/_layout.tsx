@@ -81,6 +81,8 @@ function RootLayoutNav() {
     <Drawer.Screen name="community-profile/[username]" options={{ drawerItemStyle: { display: 'none' } }} />
     <Drawer.Screen name="groups" options={{ drawerItemStyle: { display: 'none' } }} />
     <Drawer.Screen name="group-chat/[groupId]" options={{ drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="groups-discover" options={{ drawerItemStyle: { display: 'none' } }} />
+
     </Drawer>
   );
 }
