@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Find your computer's local IP address (e.g., 192.168.1.5).
 // Your phone and computer MUST be on the same Wi-Fi network.
 // Do NOT use 'localhost' or '127.0.0.1' as your phone will not be able to find it.
-const API_URL = 'http://192.168.1.2:8000/api';
+const API_URL = 'http://192.168.1.5:8000/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,

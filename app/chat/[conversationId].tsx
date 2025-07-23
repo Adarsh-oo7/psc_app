@@ -11,29 +11,38 @@ import {
     SafeAreaView, 
     ActivityIndicator, 
     Alert,
-    Dimensions
+    Dimensions,
+    Image
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import useSWR from 'swr';
 import { useAppContext } from '@/context/AppContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
 export default function ChatScreen() {
     const { user, fetcher, theme } = useAppContext();
     const isDarkMode = theme === 'dark';
+    const router = useRouter();
     const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [isConnected, setIsConnected] = useState(false);
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [otherParticipant, setOtherParticipant] = useState(null);
     const ws = useRef<WebSocket | null>(null);
     const flatListRef = useRef<FlatList>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectAttempts = useRef(0);
     const maxReconnectAttempts = 5;
+
+    const { data: conversationData, isLoading: conversationLoading } = useSWR(
+        `/messaging/conversations/${conversationId}/`,
+        fetcher
+    );
 
     const { data: initialMessages, isLoading, error } = useSWR(
         `/messaging/conversations/${conversationId}/messages/`,
@@ -45,6 +54,16 @@ export default function ChatScreen() {
             setMessages(initialMessages.slice().reverse());
         }
     }, [initialMessages]);
+
+    useEffect(() => {
+        if (conversationData && conversationData.participants) {
+            // Find the other participant (not the current user)
+            const other = conversationData.participants.find(
+                participant => participant.username !== user?.username
+            );
+            setOtherParticipant(other);
+        }
+    }, [conversationData, user]);
 
     const connectWebSocket = useCallback(async () => {
         try {
@@ -65,7 +84,7 @@ export default function ChatScreen() {
             }
 
             // IMPORTANT: Replace with your computer's local IP address
-            const wsUrl = `ws://192.168.1.2:8000/ws/messaging/${conversationId}/?token=${token}`;
+            const wsUrl = `ws://192.168.1.5:8000/ws/messaging/${conversationId}/?token=${token}`;
             console.log("WebSocket URL:", wsUrl);
             
             ws.current = new WebSocket(wsUrl);
@@ -94,7 +113,7 @@ export default function ChatScreen() {
                 // Show more detailed error information
                 Alert.alert(
                     "WebSocket Error",
-                    `Connection failed. Please check:\n• Network connection\n• Server is running\n• Correct IP address (192.168.1.2)\n• Port 8000 is accessible\n\nError: ${e.message || 'Unknown error'}`
+                    `Connection failed. Please check:\n• Network connection\n• Server is running\n• Correct IP address (192.168.1.5)\n• Port 8000 is accessible\n\nError: ${e.message || 'Unknown error'}`
                 );
             };
 
@@ -266,11 +285,7 @@ export default function ChatScreen() {
             );
         }
         
-        return (
-            <View style={[styles.statusBar, styles.connectedBar]}>
-                <Text style={styles.statusText}>Connected</Text>
-            </View>
-        );
+        return null; // Don't show anything when connected
     };
 
     const testConnection = async () => {
@@ -282,7 +297,7 @@ export default function ChatScreen() {
             console.log("User:", user);
             
             // Test if the server is reachable
-            const testUrl = `http://192.168.1.2:8000/messaging/conversations/${conversationId}/messages/`;
+            const testUrl = `http://192.168.1.5:8000/messaging/conversations/${conversationId}/messages/`;
             console.log("Testing HTTP endpoint:", testUrl);
             
             const response = await fetch(testUrl, {
@@ -300,7 +315,7 @@ export default function ChatScreen() {
                 // Try WebSocket connection
                 connectWebSocket();
             } else {
-                Alert.alert("Connection Test", `❌ HTTP connection failed!\nStatus: ${response.status}\nCheck if server is running on 192.168.1.2:8000`);
+                Alert.alert("Connection Test", `❌ HTTP connection failed!\nStatus: ${response.status}\nCheck if server is running on 192.168.1.5:8000`);
             }
         } catch (error) {
             console.error("Connection test error:", error);
@@ -308,40 +323,156 @@ export default function ChatScreen() {
         }
     };
 
+    const ProfileHeader = () => {
+        if (conversationLoading || !otherParticipant) {
+            return (
+                <View style={[styles.profileHeader, isDarkMode && styles.profileHeaderDark]}>
+                    <TouchableOpacity 
+                        style={styles.backButton} 
+                        onPress={() => router.back()}
+                    >
+                        <Ionicons 
+                            name="arrow-back" 
+                            size={24} 
+                            color={isDarkMode ? '#fff' : '#000'} 
+                        />
+                    </TouchableOpacity>
+                    <View style={styles.profileContent}>
+                        <View style={[styles.avatarPlaceholder, isDarkMode && styles.avatarPlaceholderDark]} />
+                        <View style={styles.profileInfo}>
+                            <View style={[styles.namePlaceholder, isDarkMode && styles.namePlaceholderDark]} />
+                            <View style={[styles.statusPlaceholder, isDarkMode && styles.statusPlaceholderDark]} />
+                        </View>
+                    </View>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity style={styles.actionButton}>
+                            <Ionicons 
+                                name="videocam-outline" 
+                                size={24} 
+                                color={isDarkMode ? '#fff' : '#4a3780'} 
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionButton}>
+                            <Ionicons 
+                                name="call-outline" 
+                                size={24} 
+                                color={isDarkMode ? '#fff' : '#4a3780'} 
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionButton}>
+                            <Ionicons 
+                                name="ellipsis-vertical" 
+                                size={24} 
+                                color={isDarkMode ? '#fff' : '#4a3780'} 
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            );
+        }
+
+        return (
+            <View style={[styles.profileHeader, isDarkMode && styles.profileHeaderDark]}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => router.back()}
+                >
+                    <Ionicons 
+                        name="arrow-back" 
+                        size={24} 
+                        color={isDarkMode ? '#fff' : '#000'} 
+                    />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.profileContent}>
+                    {otherParticipant?.profile_image ? (
+                        <Image 
+                            source={{ uri: otherParticipant.profile_image }} 
+                            style={styles.avatar}
+                        />
+                    ) : (
+                        <View style={[styles.avatarPlaceholder, isDarkMode && styles.avatarPlaceholderDark]}>
+                            <Text style={[styles.avatarText, isDarkMode && styles.avatarTextDark]}>
+                                {otherParticipant?.first_name?.[0]?.toUpperCase() || 
+                                 otherParticipant?.username?.[0]?.toUpperCase() || '?'}
+                            </Text>
+                        </View>
+                    )}
+                    
+                    <View style={styles.profileInfo}>
+                        <Text style={[styles.profileName, isDarkMode && styles.profileNameDark]}>
+                            {otherParticipant?.first_name && otherParticipant?.last_name 
+                                ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
+                                : otherParticipant?.username || 'Unknown User'}
+                        </Text>
+                        <Text style={[styles.profileStatus, isDarkMode && styles.profileStatusDark]}>
+                            {isConnected ? 'Online' : 'Offline'}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+                
+                <View style={styles.headerActions}>
+                    <TouchableOpacity style={styles.actionButton}>
+                        <Ionicons 
+                            name="videocam-outline" 
+                            size={24} 
+                            color={isDarkMode ? '#fff' : '#4a3780'} 
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton}>
+                        <Ionicons 
+                            name="call-outline" 
+                            size={24} 
+                            color={isDarkMode ? '#fff' : '#4a3780'} 
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionButton}>
+                        <Ionicons 
+                            name="ellipsis-vertical" 
+                            size={24} 
+                            color={isDarkMode ? '#fff' : '#4a3780'} 
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
+
     if (isLoading) {
         return (
-            <View style={[styles.container, styles.centered, isDarkMode && styles.containerDark]}>
-                <ActivityIndicator size="large" color={isDarkMode ? '#fff' : '#000'} />
-                <Text style={[styles.loadingText, isDarkMode && styles.loadingTextDark]}>
-                    Loading messages...
-                </Text>
-            </View>
+            <SafeAreaView style={[styles.container, isDarkMode && styles.containerDark]}>
+                <ProfileHeader />
+                <View style={[styles.centered, { flex: 1 }]}>
+                    <ActivityIndicator size="large" color={isDarkMode ? '#fff' : '#000'} />
+                    <Text style={[styles.loadingText, isDarkMode && styles.loadingTextDark]}>
+                        Loading messages...
+                    </Text>
+                </View>
+            </SafeAreaView>
         );
     }
 
     if (error) {
         return (
-            <View style={[styles.container, styles.centered, isDarkMode && styles.containerDark]}>
-                <Text style={[styles.errorText, isDarkMode && styles.errorTextDark]}>
-                    Failed to load messages
-                </Text>
-                <TouchableOpacity onPress={() => window.location.reload()} style={styles.retryButton}>
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
+            <SafeAreaView style={[styles.container, isDarkMode && styles.containerDark]}>
+                <ProfileHeader />
+                <View style={[styles.centered, { flex: 1 }]}>
+                    <Text style={[styles.errorText, isDarkMode && styles.errorTextDark]}>
+                        Failed to load messages
+                    </Text>
+                    <TouchableOpacity onPress={() => window.location.reload()} style={styles.retryButton}>
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         );
     }
 
     return (
         <SafeAreaView style={[styles.container, isDarkMode && styles.containerDark]}>
-            <Stack.Screen 
-                options={{ 
-                    title: "Chat", 
-                    headerTintColor: isDarkMode ? '#fff' : '#000',
-                    headerStyle: { backgroundColor: isDarkMode ? '#1f2937' : '#fff' }
-                }} 
-            />
+            <Stack.Screen options={{ headerShown: false }} />
             
+            <ProfileHeader />
             <ConnectionStatus />
             
             <FlatList
@@ -391,8 +522,6 @@ export default function ChatScreen() {
     );
 }
 
-// ... your imports and component code remain unchanged ...
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -405,6 +534,111 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    
+    // Profile Header Styles
+    profileHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+        minHeight: 60,
+    },
+    profileHeaderDark: {
+        backgroundColor: '#1f2937',
+        borderBottomColor: '#374151',
+    },
+    backButton: {
+        padding: 8,
+        marginRight: 8,
+        borderRadius: 20,
+    },
+    profileContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 12,
+    },
+    avatarPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#4a3780',
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarPlaceholderDark: {
+        backgroundColor: '#7c3aed',
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    avatarTextDark: {
+        color: '#fff',
+    },
+    profileInfo: {
+        flex: 1,
+    },
+    profileName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1f2937',
+        marginBottom: 2,
+    },
+    profileNameDark: {
+        color: '#fff',
+    },
+    profileStatus: {
+        fontSize: 12,
+        color: '#6b7280',
+    },
+    profileStatusDark: {
+        color: '#9ca3af',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionButton: {
+        padding: 8,
+        marginLeft: 4,
+    },
+    
+    // Loading placeholders
+    namePlaceholder: {
+        height: 16,
+        width: 120,
+        backgroundColor: '#e5e7eb',
+        borderRadius: 4,
+        marginBottom: 4,
+    },
+    namePlaceholderDark: {
+        backgroundColor: '#374151',
+    },
+    statusPlaceholder: {
+        height: 12,
+        width: 60,
+        backgroundColor: '#e5e7eb',
+        borderRadius: 4,
+    },
+    statusPlaceholderDark: {
+        backgroundColor: '#374151',
+    },
+    
     statusBar: {
         flexDirection: 'row',
         alignItems: 'center',

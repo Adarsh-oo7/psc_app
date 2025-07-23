@@ -18,21 +18,15 @@ function RootLayoutNav() {
     if (!isLoading) {
       SplashScreen.hideAsync();
       if (user) {
-        // Navigate to the main tabs. Do not use 'index', use '/(tabs)' per Expo Router convention.
         router.replace('/(tabs)');
       } else {
-        // Navigate to the login screen.
         router.replace('/login');
       }
     }
   }, [isLoading, user, router]);
 
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
   }
 
   return (
@@ -43,46 +37,52 @@ function RootLayoutNav() {
         headerShown: false,
       }}
     >
+      {/* --- Screens Visible in the Drawer Menu --- */}
       <Drawer.Screen
         name="(tabs)"
         options={{
           title: 'Home',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          drawerIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
         }}
       />
       <Drawer.Screen
         name="settings"
         options={{
           title: 'Settings',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          drawerIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
         }}
       />
-      {/* Hide screens that shouldn't appear in the drawer menu */}
+      
+      {/* --- Screens Hidden from the Drawer Menu --- */}
+      {/* Auth Screens */}
       <Drawer.Screen name="login" options={{ drawerItemStyle: { display: 'none' } }} />
       <Drawer.Screen name="register" options={{ drawerItemStyle: { display: 'none' } }} />
-      <Drawer.Screen name="practice-session" options={{ drawerItemStyle: { display: 'none' } }} />
-         {/* <Drawer.Screen name="daily-exam" options={{ drawerItemStyle: { display: 'none' } }} /> */}
-    {/* <Drawer.Screen name="daily-exam" options={{ drawerItemStyle: { display: 'none' } }} /> */}
+      <Drawer.Screen name="edit-profile" options={{ drawerItemStyle: { display: 'none' } }} />
+      
+      {/* Community Screens */}
+      <Drawer.Screen name="create-post" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="community-profile/[username]" options={{ drawerItemStyle: { display: 'none' } }} />
+      
+      {/* Messaging Screens */}
+      <Drawer.Screen name="conversations" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="chat/[conversationId]" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="create-group" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="groups-discover" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="group-chat/[groupId]" options={{ drawerItemStyle: { display: 'none' } }} />
 
-    <Drawer.Screen name="model-exam-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="model-quiz/[modelExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
-
-    <Drawer.Screen name="daily-quiz/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="leaderboard/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="exam-calendar" options={{ drawerItemStyle: { display: 'none' } }} />
-
-
-        <Drawer.Screen name="pyq-exam" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="pyq-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="community-profile/[username]" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="groups" options={{ drawerItemStyle: { display: 'none' } }} />
-    <Drawer.Screen name="group-chat/[groupId]" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="groups-discover" options={{ drawerItemStyle: { display: 'none' } }} />
-
+      {/* Quiz & Exam Screens */}
+      <Drawer.Screen name="quiz" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="quiz-setup" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="daily-exam" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="model-exam-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="model-quiz/[modelExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="leaderboard/[dailyExamId]" options={{ drawerItemStyle: { display: 'none' } }} />
+      
+      {/* PDF & Syllabus Screens */}
+      <Drawer.Screen name="exam-calendar" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="pyq-exam" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="pyq-list/[examId]" options={{ drawerItemStyle: { display: 'none' } }} />
+      
     </Drawer>
   );
 }
